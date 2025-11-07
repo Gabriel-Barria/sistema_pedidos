@@ -1,0 +1,208 @@
+name: CI - Sistema Pedidos
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # ============================================
+  # LINT
+  # ============================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Ejecutar ESLint
+        working-directory: ./backend
+        run: npm run lint
+
+  # ============================================
+  # TESTS UNITARIOS
+  # ============================================
+  test-unit:
+    name: Tests Unitarios
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Ejecutar tests unitarios
+        working-directory: ./backend
+        run: npm run test:cov
+
+      - name: Subir coverage a Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: unittests
+          name: backend-unit-tests
+
+  # ============================================
+  # TESTS E2E
+  # ============================================
+  test-e2e:
+    name: Tests E2E
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pedidos_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: pedidos_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Ejecutar migraciones
+        working-directory: ./backend
+        run: npm run migrate:test
+        env:
+          DATABASE_URL: postgresql://pedidos_test:test_password@localhost:5432/pedidos_test
+
+      - name: Ejecutar tests E2E
+        working-directory: ./backend
+        run: npm run test:e2e
+        env:
+          DATABASE_URL: postgresql://pedidos_test:test_password@localhost:5432/pedidos_test
+          REDIS_URL: redis://localhost:6379
+
+  # ============================================
+  # BUILD
+  # ============================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test-unit]
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Verificar artefactos
+        working-directory: ./backend
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Error: dist/ no existe"
+            exit 1
+          fi
+          echo "Build exitoso"
+
+  # ============================================
+  # SECURITY SCAN
+  # ============================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Audit npm
+        working-directory: ./backend
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+  # ============================================
+  # STATUS CHECK
+  # ============================================
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [lint, test-unit, test-e2e, build, security]
+    if: always()
+
+    steps:
+      - name: Verificar status
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.test-unit.result }}" != "success" ] || \
+             [ "${{ needs.test-e2e.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ]; then
+            echo "CI falló"
+            exit 1
+          fi
+          echo "✅ CI exitoso"

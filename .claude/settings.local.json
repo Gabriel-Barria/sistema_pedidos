@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(\"C:\\Users\\ibarr\\Documents\\Proyectos\\sistema_pedidos\\docs\\operations\\runbook.md\")",
+      "Bash(\"C:\\Users\\ibarr\\Documents\\Proyectos\\sistema_pedidos\\docs\\operations\\deployment.md\")",
+      "Bash(\"C:\\Users\\ibarr\\Documents\\Proyectos\\sistema_pedidos\\docs\\testing\\strategy.md\")",
+      "Bash(\"C:\\Users\\ibarr\\Documents\\Proyectos\\sistema_pedidos\\docs\\architecture\\diagrams\\sequence-diagrams.md\")",
+      "Bash(\"C:\\Users\\ibarr\\Documents\\Proyectos\\sistema_pedidos\\docs\\decisions\\README.md\")",
+      "Bash(001-nestjs-framework.md)",
+      "Bash(004-multi-tenancy-approach.md)",
+      "Bash(005-event-driven-architecture.md)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
