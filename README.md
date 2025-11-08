@@ -271,8 +271,13 @@ Propietario - Todos los derechos reservados
 - [x] Docker Compose configurado (PostgreSQL, Redis, PgAdmin, Redis Commander)
 - [x] Makefile con comandos básicos
 - [x] Variables de entorno (.env.example)
-- [x] Documentación base
-- [ ] GitHub Actions CI/CD
-- [ ] Branches main y develop configurados
+- [x] Documentación base (docs/)
+- [x] GitHub Actions CI/CD (.github/workflows/ci.yml)
+- [x] Branches main y develop configurados
+- [x] Commit inicial realizado
+- [x] Estructura de carpetas creada
+- [x] .gitignore configurado
+
+**Status**: ✅ E01 Completado
 
 **Siguiente**: [E02-estructura-backend](docs/workflows/E02-estructura-backend.md)
