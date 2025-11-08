@@ -9,10 +9,14 @@ import { ProductsRepository } from './products.repository';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { TenantContext } from '../tenants/tenant-context';
+import { CacheService } from '../../infrastructure/cache/cache.service';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly productsRepository: ProductsRepository) {}
+  constructor(
+    private readonly productsRepository: ProductsRepository,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
     const tenantId = TenantContext.getTenantId();
@@ -52,6 +56,9 @@ export class ProductsService {
       await this.productsRepository.createAddons(product.id, addons);
     }
 
+    // Invalidate cache for this tenant
+    await this.cacheService.invalidatePattern(`catalog:${tenantId}:*`);
+
     return this.findById(product.id);
   }
 
@@ -65,6 +72,15 @@ export class ProductsService {
     const tenantId = TenantContext.getTenantId();
     if (!tenantId) {
       throw new BadRequestException('Tenant context not found');
+    }
+
+    // Generate cache key
+    const cacheKey = `catalog:${tenantId}:${JSON.stringify(params || {})}`;
+
+    // Try cache first
+    const cached = await this.cacheService.get<Product[]>(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const where: any = {
@@ -92,7 +108,7 @@ export class ProductsService {
       };
     }
 
-    return this.productsRepository.findAll({
+    const products = await this.productsRepository.findAll({
       where,
       orderBy: { createdAt: 'desc' },
       skip: params?.skip,
@@ -116,6 +132,11 @@ export class ProductsService {
         },
       },
     });
+
+    // Cache result for 5 minutes (300 seconds)
+    await this.cacheService.set(cacheKey, products, 300);
+
+    return products;
   }
 
   async findById(id: string): Promise<Product> {
@@ -159,9 +180,10 @@ export class ProductsService {
     // Validate product exists and belongs to tenant
     await this.findById(id);
 
+    const tenantId = TenantContext.getTenantId()!;
+
     // If updating SKU, check for conflicts
     if (updateProductDto.sku) {
-      const tenantId = TenantContext.getTenantId()!;
       const existing = await this.productsRepository.findBySku(
         tenantId,
         updateProductDto.sku,
@@ -200,6 +222,9 @@ export class ProductsService {
       }
     }
 
+    // Invalidate cache for this tenant
+    await this.cacheService.invalidatePattern(`catalog:${tenantId}:*`);
+
     return this.findById(id);
   }
 
@@ -207,10 +232,18 @@ export class ProductsService {
     // Validate product exists and belongs to tenant
     const product = await this.findById(id);
 
+    const tenantId = TenantContext.getTenantId()!;
+
+    let result: Product;
     if (hard) {
-      return this.productsRepository.hardDelete(id);
+      result = await this.productsRepository.hardDelete(id);
     } else {
-      return this.productsRepository.softDelete(id);
+      result = await this.productsRepository.softDelete(id);
     }
+
+    // Invalidate cache for this tenant
+    await this.cacheService.invalidatePattern(`catalog:${tenantId}:*`);
+
+    return result;
   }
 }

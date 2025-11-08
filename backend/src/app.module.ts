@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { CacheModule } from './infrastructure/cache/cache.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -25,6 +26,7 @@ import configuration from './config/configuration';
 
     // Infrastructure modules
     DatabaseModule,
+    CacheModule,
 
     // Feature modules
     HealthModule,
