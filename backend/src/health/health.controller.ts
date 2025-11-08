@@ -7,8 +7,10 @@ import {
   DiskHealthIndicator,
 } from '@nestjs/terminus';
 import { PrismaService } from '../infrastructure/database/prisma.service';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('health')
+@Public()
 export class HealthController {
   constructor(
     private health: HealthCheckService,
