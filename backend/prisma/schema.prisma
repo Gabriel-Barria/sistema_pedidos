@@ -25,7 +25,9 @@ model Tenant {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  users User[]
+  users      User[]
+  products   Product[]
+  categories Category[]
 
   @@map("tenants")
 }
@@ -79,4 +81,92 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+// ============================================
+// Catalog
+// ============================================
+
+model Category {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  image       String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products ProductCategory[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, active])
+  @@map("categories")
+}
+
+model Product {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  name        String
+  description String?
+  sku         String
+  price       Decimal   @db.Decimal(10, 2)
+  taxRate     Decimal   @default(0) @map("tax_rate") @db.Decimal(5, 4)
+  stock       Int       @default(0)
+  images      String[]  @default([])
+  active      Boolean   @default(true)
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categories ProductCategory[]
+  variants   Variant[]
+  addons     Addon[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, active])
+  @@index([tenantId, name])
+  @@map("products")
+}
+
+model ProductCategory {
+  productId  String @map("product_id")
+  categoryId String @map("category_id")
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@map("product_categories")
+}
+
+model Variant {
+  id         String  @id @default(uuid())
+  productId  String  @map("product_id")
+  name       String
+  priceDelta Decimal @default(0) @map("price_delta") @db.Decimal(10, 2)
+  sortOrder  Int     @default(0) @map("sort_order")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("variants")
+}
+
+model Addon {
+  id        String  @id @default(uuid())
+  productId String  @map("product_id")
+  name      String
+  price     Decimal @db.Decimal(10, 2)
+  sortOrder Int     @default(0) @map("sort_order")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("addons")
 }
