@@ -8,6 +8,9 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
+  @IsString()
+  tenantSlug!: string;
+
   @IsEmail()
   email!: string;
 

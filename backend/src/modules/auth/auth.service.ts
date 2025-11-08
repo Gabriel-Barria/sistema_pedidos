@@ -12,6 +12,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { randomBytes } from 'crypto';
+import { TenantContext } from '../tenants/tenant-context';
 
 @Injectable()
 export class AuthService {
@@ -28,7 +29,13 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
-    const user = await this.usersService.findByEmail(loginDto.email);
+    // Get tenant from context (set by TenantMiddleware)
+    const tenantId = TenantContext.getTenantId();
+    if (!tenantId) {
+      throw new UnauthorizedException('Tenant context not found');
+    }
+
+    const user = await this.usersService.findByEmail(loginDto.email, tenantId);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -100,6 +107,7 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
+      tenantId: user.tenantId,
       roles: user.roles,
     };
 

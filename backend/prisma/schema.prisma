@@ -11,6 +11,26 @@ datasource db {
 }
 
 // ============================================
+// Multi-Tenancy
+// ============================================
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  domain    String?  @unique
+  config    Json?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users User[]
+
+  @@map("tenants")
+}
+
+// ============================================
 // Users & Auth
 // ============================================
 
@@ -25,7 +45,8 @@ enum Role {
 
 model User {
   id           String   @id @default(uuid())
-  email        String   @unique
+  tenantId     String   @map("tenant_id")
+  email        String
   passwordHash String   @map("password_hash")
   firstName    String?  @map("first_name")
   lastName     String?  @map("last_name")
@@ -36,9 +57,11 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   refreshTokens RefreshToken[]
 
-  @@index([email])
+  @@unique([tenantId, email])
+  @@index([tenantId, email])
   @@map("users")
 }
 

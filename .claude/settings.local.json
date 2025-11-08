@@ -11,7 +11,16 @@
       "Bash(004-multi-tenancy-approach.md)",
       "Bash(005-event-driven-architecture.md)",
       "Bash(mkdir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(findstr:*)",
+      "Bash(tasklist:*)",
+      "Bash(nul)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(npm run start:dev:*)",
+      "Bash(echo:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

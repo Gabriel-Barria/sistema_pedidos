@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { TenantContext } from '../../modules/tenants/tenant-context';
 
 @Injectable()
 export class PrismaService
@@ -27,6 +28,10 @@ export class PrismaService
 
   async onModuleInit() {
     this.logger.log('Connecting to database...');
+
+    // Note: Prisma middleware ($use) is not available in Prisma 6.x
+    // Multi-tenancy is enforced through explicit tenantId filtering in repositories
+    // and through TenantContext in application code
 
     // Event listeners for logging
     this.$on('query' as never, (e: unknown) => {
